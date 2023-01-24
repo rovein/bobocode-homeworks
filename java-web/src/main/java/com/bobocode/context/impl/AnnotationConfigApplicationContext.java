@@ -1,6 +1,7 @@
 package com.bobocode.context.impl;
 
 import com.bobocode.context.ApplicationContext;
+import com.bobocode.context.annotation.Autowire;
 import com.bobocode.context.annotation.Bean;
 import com.bobocode.context.exception.NoSuchBeanException;
 import com.bobocode.context.exception.NoUniqueBeanException;
@@ -8,6 +9,7 @@ import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 import org.reflections.Reflections;
 
+import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,6 +33,7 @@ public class AnnotationConfigApplicationContext implements ApplicationContext {
             Object instance = type.getConstructor().newInstance();
             beans.put(name, instance);
         }
+        postProcessBeans();
     }
 
     private String resolveBeanName(Class<?> type) {
@@ -41,6 +44,18 @@ public class AnnotationConfigApplicationContext implements ApplicationContext {
     private String resolveTypeId(Class<?> type) {
         String className = type.getSimpleName();
         return className.substring(0, 1).toLowerCase() + className.substring(1);
+    }
+
+    @SneakyThrows
+    private void postProcessBeans() {
+        for (Object bean : beans.values()) {
+            for (Field field : bean.getClass().getDeclaredFields()) {
+                if (field.isAnnotationPresent(Autowire.class)) {
+                    field.setAccessible(true);
+                    field.set(bean, getBean(field.getType()));
+                }
+            }
+        }
     }
 
     /**
@@ -59,7 +74,6 @@ public class AnnotationConfigApplicationContext implements ApplicationContext {
         }
         return matchingBeans.values().stream()
                 .findAny()
-                .map(beanType::cast)
                 .orElseThrow(NoSuchBeanException::new);
     }
 

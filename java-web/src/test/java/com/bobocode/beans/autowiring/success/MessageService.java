@@ -1,4 +1,4 @@
-package com.bobocode.context.impl;
+package com.bobocode.beans.autowiring.success;
 
 import com.bobocode.context.annotation.Bean;
 
